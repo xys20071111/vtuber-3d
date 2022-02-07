@@ -1,7 +1,7 @@
 import { Holistic } from "@mediapipe/holistic";
 import { Camera } from "@mediapipe/camera_utils";
 import { Quaternion, Euler, Vector3, Clock } from "three";
-import { TFace, TPose, Face, Pose, Vector, Utils} from 'kalidokit';
+import { TFace, TPose, Face, Pose, Vector, Utils } from 'kalidokit';
 import { VRM, VRMSchema } from "@pixiv/three-vrm";
 import ModelManager from "./ModelManager";
 import { rigRotation } from "./utils";
@@ -33,8 +33,11 @@ const captureCamera = new Camera(captureVideo, {
 
 holistic.onResults(result => {
 	const model = modelManager.getModel();
+	if (!model) {
+		return;
+	}
 	if (result.faceLandmarks) {
-		const face = Face.solve(result.faceLandmarks, {smoothBlink: true}) as TFace;
+		const face = Face.solve(result.faceLandmarks, { smoothBlink: true }) as TFace;
 		const Blendshape = model.blendShapeProxy;
 		const rotation = new Euler(face.head.x, face.head.y, face.head.z)
 		model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Neck)?.quaternion.slerp(new Quaternion().setFromEuler(rotation), 0.7);

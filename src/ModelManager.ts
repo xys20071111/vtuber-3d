@@ -1,6 +1,7 @@
 import { EventEmitter } from "eventemitter3";
 import { VRM, VRMUtils } from "@pixiv/three-vrm";
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { mainScene } from "./Scene";
 
 const loader = new GLTFLoader();
 
@@ -26,11 +27,20 @@ class ModelManager extends EventEmitter {
 			(error) => console.error(error));
 	}
 
-	public getModel(): VRM {
+	public getModel(): VRM | null{
 		if (this.currentModel) {
 			return this.currentModel;
+		} else {
+			return null;
 		}
-		throw new Error('Model hasn\'t been loaded.');
+		
+	}
+
+	public cleanModel() {
+		if (this.currentModel) {
+			mainScene.remove(this.currentModel.scene);
+			this.currentModel = null;
+		}
 	}
 }
 
