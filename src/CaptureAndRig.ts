@@ -1,7 +1,7 @@
 import { Holistic } from "@mediapipe/holistic";
 import { Camera } from "@mediapipe/camera_utils";
 import { Quaternion, Euler, Vector3, Clock } from "three";
-import { TFace, TPose, Face, Pose, Vector, Utils } from 'kalidokit';
+import { TFace, TPose, Face, Pose, Vector, Utils, Hand, THand } from 'kalidokit';
 import { VRM, VRMSchema } from "@pixiv/three-vrm";
 import ModelManager from "./ModelManager";
 import { rigRotation } from "./utils";
@@ -32,6 +32,7 @@ const captureCamera = new Camera(captureVideo, {
 });
 
 holistic.onResults(result => {
+	let pose;
 	const model = modelManager.getModel();
 	if (!model) {
 		return;
@@ -56,7 +57,7 @@ holistic.onResults(result => {
 	}
 
 	if (result.ea && result.poseLandmarks) {
-		const pose = Pose.solve(result.ea, result.poseLandmarks) as TPose;
+		pose = Pose.solve(result.ea, result.poseLandmarks) as TPose;
 		rigRotation(model, "Hips", pose.Hips.rotation, 0.7);
 		const hipsPosition = model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Hips)?.position;
 		model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Hips)?.position.lerp(new Vector3(hipsPosition?.x, hipsPosition?.y, -pose.Hips.position.z), 0.07)
@@ -72,6 +73,55 @@ holistic.onResults(result => {
 		rigRotation(model, "LeftLowerLeg", pose.LeftLowerLeg, 1, .3);
 		rigRotation(model, "RightUpperLeg", pose.RightUpperLeg, 1, .3);
 		rigRotation(model, "RightLowerLeg", pose.RightLowerLeg, 1, .3);
+	}
+	if (result.leftHandLandmarks && pose) {
+		const leftHand = Hand.solve(result.leftHandLandmarks, 'Left') as THand<'Left'>;
+		rigRotation(model, "LeftHand", {
+			// Combine pose rotation Z and hand rotation X Y
+			z: pose.LeftHand.z,
+			y: leftHand.LeftWrist.y,
+			x: leftHand.LeftWrist.x
+		});
+		rigRotation(model, "LeftRingProximal", leftHand.LeftRingProximal);
+		rigRotation(model, "LeftRingIntermediate", leftHand.LeftRingIntermediate);
+		rigRotation(model, "LeftRingDistal", leftHand.LeftRingDistal);
+		rigRotation(model, "LeftIndexProximal", leftHand.LeftIndexProximal);
+		rigRotation(model, "LeftIndexIntermediate", leftHand.LeftIndexIntermediate);
+		rigRotation(model, "LeftIndexDistal", leftHand.LeftIndexDistal);
+		rigRotation(model, "LeftMiddleProximal", leftHand.LeftMiddleProximal);
+		rigRotation(model, "LeftMiddleIntermediate", leftHand.LeftMiddleIntermediate);
+		rigRotation(model, "LeftMiddleDistal", leftHand.LeftMiddleDistal);
+		rigRotation(model, "LeftThumbProximal", leftHand.LeftThumbProximal);
+		rigRotation(model, "LeftThumbIntermediate", leftHand.LeftThumbIntermediate);
+		rigRotation(model, "LeftThumbDistal", leftHand.LeftThumbDistal);
+		rigRotation(model, "LeftLittleProximal", leftHand.LeftLittleProximal);
+		rigRotation(model, "LeftLittleIntermediate", leftHand.LeftLittleIntermediate);
+		rigRotation(model, "LeftLittleDistal", leftHand.LeftLittleDistal);
+	}
+
+	if(result.rightHandLandmarks && pose) {
+		const rightHand = Hand.solve(result.rightHandLandmarks, 'Right') as THand<'Right'>;
+		rigRotation(model, "RightHand", {
+		// Combine Z axis from pose hand and X/Y axis from hand wrist rotation
+			z: pose.RightHand.z,
+			y: rightHand.RightWrist.y,
+			x: rightHand.RightWrist.x
+		});
+		rigRotation(model, "RightRingProximal", rightHand.RightRingProximal);
+		rigRotation(model, "RightRingIntermediate", rightHand.RightRingIntermediate);
+		rigRotation(model, "RightRingDistal", rightHand.RightRingDistal);
+		rigRotation(model, "RightIndexProximal", rightHand.RightIndexProximal);
+		rigRotation(model, "RightIndexIntermediate",rightHand.RightIndexIntermediate);
+		rigRotation(model, "RightIndexDistal", rightHand.RightIndexDistal);
+		rigRotation(model, "RightMiddleProximal", rightHand.RightMiddleProximal);
+		rigRotation(model, "RightMiddleIntermediate", rightHand.RightMiddleIntermediate);
+		rigRotation(model, "RightMiddleDistal", rightHand.RightMiddleDistal);
+		rigRotation(model, "RightThumbProximal", rightHand.RightThumbProximal);
+		rigRotation(model, "RightThumbIntermediate", rightHand.RightThumbIntermediate);
+		rigRotation(model, "RightThumbDistal", rightHand.RightThumbDistal);
+		rigRotation(model, "RightLittleProximal", rightHand.RightLittleProximal);
+		rigRotation(model, "RightLittleIntermediate", rightHand.RightLittleIntermediate);
+		rigRotation(model, "RightLittleDistal", rightHand.RightLittleDistal);
 	}
 });
 
