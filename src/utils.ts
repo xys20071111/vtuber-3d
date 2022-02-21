@@ -19,12 +19,12 @@ const rigRotation = (
   }
   if (!Part) { return }
   
-  let euler = new Euler(
+  const euler = new Euler(
     rotation.x * dampener,
     rotation.y * dampener,
     rotation.z * dampener
   );
-  let quaternion = new Quaternion().setFromEuler(euler);
+  const quaternion = new Quaternion().setFromEuler(euler);
   Part.quaternion.slerp(quaternion, lerpAmount); // interpolate
 };
 
@@ -41,7 +41,7 @@ const rigPosition = (
     Part = model?.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName[name]);
   }
   if (!Part) { return }
-  let vector = new Vector3(
+  const vector = new Vector3(
     position.x * dampener,
     position.y * dampener,
     position.z * dampener
