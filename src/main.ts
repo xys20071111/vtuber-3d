@@ -5,10 +5,11 @@ import './CaptureAndRig';
 import ModelManager from './ModelManager';
 import backendEvent from './backendConnect';
 import { mainScene } from './Scene';
-import { Color, Texture } from 'three';
+import { Color, Texture, TextureLoader } from 'three';
 
-const app:HTMLDivElement = document.querySelector<HTMLDivElement>('#app') as HTMLDivElement;
+const app:HTMLDivElement = document.querySelector<HTMLDivElement>('#app') as HTMLDivElement
 const modelManager = ModelManager.getInstance()
+const loader = new TextureLoader()
 
 app.appendChild(View);
 
@@ -22,13 +23,12 @@ backendEvent.on('reload-model', () => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 backendEvent.on('set-new-background', (data: any) => {
+	console.log(data)
 	if (data.type === 'color' || data.type === 'colour') {
 		const color = data.data as string
 		mainScene.background = new Color(parseInt(color.replace('#', ''), 16));
 	} else if (data.type === 'img') {
-		const image = new HTMLImageElement();
-		image.src = data.data as string
-		const texture = new Texture(image)
+		const texture = loader.load(data.data)
 		mainScene.background = texture
 	}
 })
