@@ -1,52 +1,35 @@
-import { Holistic } from "@mediapipe/holistic";
-import { Camera } from "@mediapipe/camera_utils";
 import { Quaternion, Euler, Vector3, Clock } from "three";
-import { TFace, TPose, Face, Pose, Vector, Utils, Hand, THand } from 'kalidokit';
+import { TFace, TPose, THand, Vector, Utils, Face } from "kalidokit";
 import { VRM, VRMSchema } from "@pixiv/three-vrm";
 import ModelManager from "./ModelManager";
 import { rigRotation } from "./utils";
 import { mainScene, orbitCamera, renderer, threeDisplay } from "./Scene";
 
+interface PoseData {
+	face?: TFace
+	pose?: TPose
+	handL?: THand<'Left'>
+	handR?: THand<'Right'>
+}
 
-const captureVideo: HTMLVideoElement = document.getElementById('capture') as HTMLVideoElement;
 const modelManager: ModelManager = ModelManager.getInstance();
 
-const holistic = new Holistic({
-	locateFile: (file) => { return `/static/${file}` }
-});
 
-holistic.setOptions({
-	modelComplexity: 1,
-	smoothLandmarks: true,
-	minDetectionConfidence: 0.7,
-	minTrackingConfidence: 0.7,
-	refineFaceLandmarks: true,
-});
-
-const captureCamera = new Camera(captureVideo, {
-	onFrame: async () => {
-		await holistic.send({ image: captureVideo });
-	},
-	width: 640,
-	height: 480
-});
-
-holistic.onResults(result => {
-	let pose;
+export const onResult = (result: PoseData) => {
 	const model = modelManager.getModel();
 	if (!model) {
 		return;
 	}
-	if (result.faceLandmarks) {
-		const face = Face.solve(result.faceLandmarks, { smoothBlink: true }) as TFace;
+	if (result.face) {
+		const face = result.face
 		const Blendshape = model.blendShapeProxy;
 		const rotation = new Euler(face.head.x, face.head.y, face.head.z)
 		model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Neck)?.quaternion.slerp(new Quaternion().setFromEuler(rotation), 0.7);
-		face.eye.l = Vector.lerp(Utils.clamp(1 - face.eye.l, 0, 1), Blendshape?.getValue(VRMSchema.BlendShapePresetName.Blink) as number, 0.5) as number;
-		face.eye.r = Vector.lerp(Utils.clamp(1 - face.eye.r, 0, 1), Blendshape?.getValue(VRMSchema.BlendShapePresetName.Blink) as number, 0.5) as number;
-		face.eye = Face.stabilizeBlink(face.eye, face.head.y)
-		Blendshape?.setValue(VRMSchema.BlendShapePresetName.BlinkL, face.eye.l);
-		Blendshape?.setValue(VRMSchema.BlendShapePresetName.BlinkR, face.eye.r);
+		face.eye.l = Vector.lerp(Utils.clamp(1 - face.eye.l, 0, 1), Blendshape?.getValue(VRMSchema.BlendShapePresetName.Blink) as number, 0.7) as number;
+		face.eye.r = Vector.lerp(Utils.clamp(1 - face.eye.r, 0, 1), Blendshape?.getValue(VRMSchema.BlendShapePresetName.Blink) as number, 0.7) as number;
+		const eyeStable = Face.stabilizeBlink(face.eye, face.head.y)
+		Blendshape?.setValue(VRMSchema.BlendShapePresetName.BlinkL, eyeStable.l);
+		Blendshape?.setValue(VRMSchema.BlendShapePresetName.BlinkR, eyeStable.r);
 
 		// Interpolate and set mouth blendshapes
 		Blendshape?.setValue(VRMSchema.BlendShapePresetName.I, Vector.lerp(face.mouth.shape.I, Blendshape.getValue(VRMSchema.BlendShapePresetName.I) as number, 0.4));
@@ -56,8 +39,8 @@ holistic.onResults(result => {
 		Blendshape?.setValue(VRMSchema.BlendShapePresetName.U, Vector.lerp(face.mouth.shape.U, Blendshape.getValue(VRMSchema.BlendShapePresetName.U) as number, 0.4));
 	}
 
-	if (result.ea && result.poseLandmarks) {
-		pose = Pose.solve(result.ea, result.poseLandmarks) as TPose;
+	if (result.pose) {
+		const pose = result.pose
 		rigRotation(model, "Hips", pose.Hips.rotation, 0.7);
 		const hipsPosition = model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Hips)?.position;
 		model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Hips)?.position.lerp(new Vector3(hipsPosition?.x, hipsPosition?.y, -pose.Hips.position.z), 0.07)
@@ -74,11 +57,11 @@ holistic.onResults(result => {
 		rigRotation(model, "RightUpperLeg", pose.RightUpperLeg, 1, .3);
 		rigRotation(model, "RightLowerLeg", pose.RightLowerLeg, 1, .3);
 	}
-	if (result.leftHandLandmarks && pose) {
-		const leftHand = Hand.solve(result.leftHandLandmarks, 'Left') as THand<'Left'>;
+	if (result.handL && result.pose) {
+		const leftHand = result.handL;
 		rigRotation(model, "LeftHand", {
 			// Combine pose rotation Z and hand rotation X Y
-			z: pose.LeftHand.z,
+			z: result.pose.LeftHand.z,
 			y: leftHand.LeftWrist.y,
 			x: leftHand.LeftWrist.x
 		});
@@ -99,11 +82,11 @@ holistic.onResults(result => {
 		rigRotation(model, "LeftLittleDistal", leftHand.LeftLittleDistal);
 	}
 
-	if(result.rightHandLandmarks && pose) {
-		const rightHand = Hand.solve(result.rightHandLandmarks, 'Right') as THand<'Right'>;
+	if(result.handR && result.pose) {
+		const rightHand = result.handR;
 		rigRotation(model, "RightHand", {
 		// Combine Z axis from pose hand and X/Y axis from hand wrist rotation
-			z: pose.RightHand.z,
+			z: result.pose.RightHand.z,
 			y: rightHand.RightWrist.y,
 			x: rightHand.RightWrist.x
 		});
@@ -123,10 +106,9 @@ holistic.onResults(result => {
 		rigRotation(model, "RightLittleIntermediate", rightHand.RightLittleIntermediate);
 		rigRotation(model, "RightLittleDistal", rightHand.RightLittleDistal);
 	}
-});
+};
 
 modelManager.on('modelLoaded', (model: VRM) => {
-	captureCamera.start();
 	mainScene.add(model.scene);
 	const clock = new Clock();
 	function render() {

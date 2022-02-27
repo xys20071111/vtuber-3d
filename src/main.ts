@@ -1,15 +1,15 @@
 import './style.css';
 import { View } from './PixiApp';
 
-import './CaptureAndRig';
+import { onResult } from './CaptureAndRig';
 import ModelManager from './ModelManager';
 import backendEvent from './backendConnect';
 import { mainScene } from './Scene';
-import { Color, Texture, TextureLoader } from 'three';
+import { Color } from 'three';
+import { loader } from './Scene'
 
 const app:HTMLDivElement = document.querySelector<HTMLDivElement>('#app') as HTMLDivElement
 const modelManager = ModelManager.getInstance()
-const loader = new TextureLoader()
 
 app.appendChild(View);
 
@@ -24,6 +24,7 @@ backendEvent.on('reload-model', () => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 backendEvent.on('set-new-background', (data: any) => {
 	console.log(data)
+	localStorage.setItem('background', JSON.stringify(data))
 	if (data.type === 'color' || data.type === 'colour') {
 		const color = data.data as string
 		mainScene.background = new Color(parseInt(color.replace('#', ''), 16));
@@ -31,4 +32,8 @@ backendEvent.on('set-new-background', (data: any) => {
 		const texture = loader.load(data.data)
 		mainScene.background = texture
 	}
+})
+
+backendEvent.on('set-pose', (data) => {
+	onResult(data)
 })
