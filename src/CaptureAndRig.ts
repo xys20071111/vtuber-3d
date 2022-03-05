@@ -2,7 +2,7 @@ import { Quaternion, Euler, Vector3, Clock } from "three";
 import { TFace, TPose, THand, Vector, Utils, Face } from "kalidokit";
 import { VRM, VRMSchema } from "@pixiv/three-vrm";
 import ModelManager from "./ModelManager";
-import { rigRotation } from "./utils";
+import { rigPosition, rigRotation } from "./utils";
 import { mainScene, orbitCamera, renderer, threeDisplay } from "./Scene";
 
 interface PoseData {
@@ -42,8 +42,13 @@ export const onResult = (result: PoseData) => {
 	if (result.pose) {
 		const pose = result.pose
 		rigRotation(model, "Hips", pose.Hips.rotation, 0.7);
-		const hipsPosition = model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Hips)?.position;
-		model.humanoid?.getBoneNode(VRMSchema.HumanoidBoneName.Hips)?.position.lerp(new Vector3(hipsPosition?.x, hipsPosition?.y, -pose.Hips.position.z), 0.07)
+		rigPosition(model, "Hips", {
+			x: -pose.Hips.position.x, // Reverse direction
+			y: pose.Hips.position.y + 0.9, // Add a bit of height
+			z: -pose.Hips.position.z // Reverse direction
+		},
+		1,
+		0.07)
 		rigRotation(model, "Chest", pose.Spine, 0.25, .3);
 		rigRotation(model, "Spine", pose.Spine, 0.45, .3);
 
