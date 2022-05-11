@@ -1,4 +1,4 @@
-import { Quaternion, Euler, Vector3, Clock } from "three";
+import { Quaternion, Euler, Clock } from "three";
 import { TFace, TPose, THand, Vector, Utils, Face } from "kalidokit";
 import { VRM, VRMSchema } from "@pixiv/three-vrm";
 import ModelManager from "./ModelManager";
