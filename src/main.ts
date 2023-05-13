@@ -4,7 +4,7 @@ import { View } from './PixiApp';
 import { onResult } from './CaptureAndRig';
 import ModelManager from './ModelManager';
 import backendEvent from './backendConnect';
-import { mainScene } from './Scene';
+import { mainScene, orbitCamera } from './Scene';
 import { Color } from 'three';
 import { loader } from './Scene'
 
@@ -34,6 +34,26 @@ backendEvent.on('set-new-background', (data: any) => {
 	}
 })
 
-backendEvent.on('set-pose', (data) => {
+backendEvent.on('set-cam-pos', (data: any) => {
+	console.log(data)
+	localStorage.setItem('cameraPosition', JSON.stringify(data))
+	for(const k in data) {
+		switch(k) {
+			case 'x':
+				orbitCamera.position.x = data[k]
+				break
+			case 'y':
+				orbitCamera.position.y = data[k]
+				break
+			case 'z':
+				orbitCamera.position.z = data[k]
+				break
+			default:
+				break
+		}
+	}
+})
+
+backendEvent.on('set-pose', (data: any) => {
 	onResult(data)
 })
